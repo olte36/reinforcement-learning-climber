@@ -52,7 +52,7 @@ if __name__ == '__main__':
         ROUTE[0], #left leg
         ROUTE[1], #right leg
         climber_model.RIGHT_HAND_LEFT_LEG)
-    climber._adjust_body()
+    climber.adjust_body()
     
     clock = pygame.time.Clock()
     curr_limb = None

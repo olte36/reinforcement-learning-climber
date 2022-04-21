@@ -2,7 +2,7 @@ import numpy as np
 import random
 
 
-class SimpleQLearningModel:
+class SimpleQLearningAgent:
 
     def __init__(self, env, alpha = 0.1, gamma = 0.6, epsilon = 0.1):
         self._env = env

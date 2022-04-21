@@ -13,3 +13,19 @@ def generate_random_route(width, heigth, holes_count, min_distance=120):
             y = random.randint(zone_height * i, zone_height * (i + 1))
             route.append((x, y))
     return np.array(route)
+
+
+def generate_simple_route(width, heigth, step=50):
+    route = []
+    for i in range(heigth // step):
+        y = step // 2 + i * step
+        if y > heigth:
+            break
+        for j in range(width // step):
+            x = step // 2 + j * step
+            route.append((x, y))
+            if x > width:
+                break
+            
+    #return np.array(route, dtype=[("x", "i8"), ("y", "i8")])
+    return np.array(route)

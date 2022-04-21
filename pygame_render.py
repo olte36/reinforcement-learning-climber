@@ -23,6 +23,15 @@ def render_climber(climber, surface):
     else:
         right_leg_color = LIGHT_BLUE
         left_hand_color = YELLOW
+
+    # голова 
+    pygame.draw.circle(surface, WHITE, to_pygame(climber.head_pos, surface.get_height()), 10)
+
+    # шея
+    pygame.draw.line(surface, WHITE, 
+        to_pygame(climber.shoulders_pos, surface.get_height()), 
+        to_pygame(climber.head_pos, surface.get_height()))
+
     # левая рука
     pygame.draw.line(surface, left_hand_color, 
         to_pygame(climber.left_hand_pos, surface.get_height()), 
@@ -45,6 +54,7 @@ def render_climber(climber, surface):
     pygame.draw.line(surface, WHITE, 
         to_pygame(climber.shoulders_pos, surface.get_height()), 
         to_pygame(climber.pelvis_pos, surface.get_height()))
+        
     # левая нога
     pygame.draw.line(surface, left_leg_color, 
         to_pygame(climber.pelvis_pos, surface.get_height()), 

@@ -15,16 +15,11 @@ RIGHT_LEG  = 3
 LEFT_HAND_RIGH_LEG = 4
 RIGHT_HAND_LEFT_LEG = 5
 
-#class SupportPos(enum.Enum):
-
-# class Point:
-#     def __init__(self, x, y):
-#         self.x = x
-#         self.y = y
-
 
 class Climber:
     
+    _head_pos = None
+
     _left_hand_pos = None
     _left_elbow_pos = None
 
@@ -41,26 +36,23 @@ class Climber:
     _right_knee_pos = None
 
     _support = None
-    _hands_len = 60
-    _torso_len = 50
-    _legs_len = 70
+    _hands_len = None
+    _torso_len = None
+    _legs_len = None
+    _neck_len = None
+    _neck_torso_ratio = None
 
 
-    def __init__(self, hands_len = 60, torso_len = 50, legs_len = 70):
+    def __init__(self, hands_len = 60, torso_len = 50, legs_len = 70, neck_len = 20):
         self._hands_len = hands_len
         self._torso_len = torso_len
         self._legs_len = legs_len
+        self._neck_len = neck_len
+        self._neck_torso_ratio = - (self._torso_len + self._neck_len) / self._neck_len
 
 
-    def can_start(self, left_hand: int, right_hand: int, left_leg: int, right_leg: int):
-        # return not np.array_equal(left_hand, left_leg) \
-        #     and not np.array_equal(left_hand, right_leg) \
-        #     and not np.array_equal(right_hand, left_leg) \
-        #     and not np.array_equal(right_hand, right_leg) \
-        return np.linalg.norm(left_hand - right_hand) <= self._hands_len * 2 \
-            and np.linalg.norm(left_leg - right_leg) <= self._legs_len * 2 \
-            and np.linalg.norm(left_hand - right_leg) <= self._legs_len + self._torso_len + self._hands_len \
-            and np.linalg.norm(left_leg - right_hand) <= self._legs_len + self._torso_len + self._hands_len
+    def can_start(self, left_hand: np.ndarray, right_hand: np.ndarray, left_leg: np.ndarray, right_leg: np.ndarray):
+        return self._is_position_possible(left_hand=left_hand, right_hand=right_hand, left_leg=left_leg, right_leg=right_leg)
 
 
     def set_start_pos(self, left_hand: np.ndarray, right_hand: np.ndarray, left_leg: np.ndarray, right_leg: np.ndarray, support: int):
@@ -77,35 +69,25 @@ class Climber:
             # TODO: реализовать отрыв неопорной правой ноги от зацепки
             return self._support != LEFT_HAND_RIGH_LEG \
                 and not np.array_equal(point, self._left_hand_pos) \
-                and np.linalg.norm(point - self._right_hand_pos) <= self._hands_len * 2 \
-                and np.linalg.norm(point - self._left_leg_pos) <= self._legs_len + self._torso_len + self._hands_len \
-                and np.linalg.norm(point - self._right_leg_pos) <= self._legs_len + self._torso_len + self._hands_len 
+                and self._is_position_possible(left_hand=point, right_hand=self._right_hand_pos, left_leg=self._left_leg_pos, right_leg=self._right_leg_pos)
         
         if limb == RIGHT_HAND:
             # TODO: реализовать отрыв неопорной левой ноги от зацепки
             return self._support != RIGHT_HAND_LEFT_LEG \
                 and not np.array_equal(point, self._right_hand_pos) \
-                and np.linalg.norm(point - self._left_hand_pos) <= self._hands_len * 2 \
-                and np.linalg.norm(point - self._right_leg_pos) <= self._legs_len + self._torso_len + self._hands_len \
-                and np.linalg.norm(point - self._left_leg_pos) <= self._legs_len + self._torso_len + self._hands_len
+                and self._is_position_possible(left_hand=self._left_hand_pos, right_hand=point, left_leg=self._left_leg_pos, right_leg=self._right_leg_pos)
 
         if limb == LEFT_LEG:
             # TODO: реализовать отрыв неопорной правой руки от зацепки
             return self._support != RIGHT_HAND_LEFT_LEG \
                 and not np.array_equal(point, self._left_leg_pos) \
-                and point[1] < min(self._left_hand_pos[1], self._right_hand_pos[1]) \
-                and np.linalg.norm(point - self._right_leg_pos) <= self._legs_len * 2 \
-                and np.linalg.norm(point - self._left_hand_pos) <= self._legs_len + self._torso_len + self._hands_len \
-                and np.linalg.norm(point - self._right_hand_pos) <= self._legs_len + self._torso_len + self._hands_len
+                and self._is_position_possible(left_hand=self._left_hand_pos, right_hand=self._right_hand_pos, left_leg=point, right_leg=self._right_leg_pos)
 
         if limb == RIGHT_LEG:
             # TODO: реализовать отрыв неопорной левой руки от зацепки
             return self._support != LEFT_HAND_RIGH_LEG \
                 and not np.array_equal(point, self._right_leg_pos) \
-                and point[1] < min(self._left_hand_pos[1], self._right_hand_pos[1]) \
-                and np.linalg.norm(point - self._left_leg_pos) <= self._legs_len * 2 \
-                and np.linalg.norm(point - self._right_hand_pos) <= self._legs_len + self._torso_len + self._hands_len \
-                and np.linalg.norm(point - self._left_hand_pos) <= self._legs_len + self._torso_len + self._hands_len
+                and self._is_position_possible(left_hand=self._left_hand_pos, right_hand=self._right_hand_pos, left_leg=self._left_leg_pos, right_leg=point)
 
         raise Exception("Ivalid limb " + limb)
 
@@ -217,6 +199,12 @@ class Climber:
         ])
         self._right_knee_pos = np.array(res.x)
 
+        # head
+        head_pos = []
+        for i in range(self._shoulders_pos.size):
+            el = (self._pelvis_pos[i] + self._neck_torso_ratio * self._shoulders_pos[i]) / (1 + self._neck_torso_ratio)
+            head_pos.append(el)
+        self._head_pos = np.array(head_pos)
         # logs
         # print("Вычисление позиции тела")
         # print("Тело: " + str(np.linalg.norm(self._shoulders_pos - self._pelvis_pos)))
@@ -224,6 +212,22 @@ class Climber:
         # print("Правая рука: " + str(np.linalg.norm(self._right_hand_pos - self._shoulders_pos)))
         # print("Левая нога: " + str(np.linalg.norm(self._left_leg_pos - self._pelvis_pos)))
         # print("Правая нога: " + str(np.linalg.norm(self._right_leg_pos - self._pelvis_pos)))
+
+
+    def _is_position_possible(self, left_hand: np.ndarray, right_hand: np.ndarray, left_leg: np.ndarray, right_leg: np.ndarray):
+        return not np.array_equal(left_hand, right_hand) \
+            and not np.array_equal(left_leg, right_leg) \
+            and min(left_hand[1], right_hand[1]) > max(left_leg[1], right_leg[1]) \
+            and np.linalg.norm(left_hand - right_hand) <= self._hands_len * 2 \
+            and np.linalg.norm(left_leg - right_leg) <= self._legs_len * 2 \
+            and np.linalg.norm(left_hand - right_leg) <= self._legs_len + self._torso_len + self._hands_len \
+            and np.linalg.norm(right_hand - left_leg) <= self._legs_len + self._torso_len + self._hands_len \
+            and np.linalg.norm(left_hand - left_leg) <= self._legs_len + self._torso_len + self._hands_len \
+            and np.linalg.norm(right_hand - right_leg) <= self._legs_len + self._torso_len + self._hands_len
+
+    @property
+    def head_pos(self):
+        return self._head_pos
 
     @property
     def left_hand_pos(self):

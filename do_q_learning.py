@@ -7,17 +7,52 @@ import q_learning
 import climber_model
 import climber_env
 import pygame
+import routes
 
 
 
 if __name__ == '__main__':
 
     #env = gym.make("Taxi-v3")
-    climber = climber_model.Climber()
-    env = climber_env.ClimberEnv(climber)
+    enx = gym.envs.toy_text.TaxiEnv()
+    #route = routes.generate_random_route(250, 500, 30)
+    route = routes.generate_simple_route(250, 500, step=70)
+    #env = climber_env.ClimberEnv(route=route, climb_direction="bt")
+
+    env.reset()
+    env.render(mode="human")
+    #time.sleep(20)
+    #sys.exit()
+
+    print("start learning")
+    model = q_learning.SimpleQLearningAgent(env=env)
+    model.learn(total_timesteps=10000, log_step=1000)
+
+    # play
+    print("the new")
+    state = env.reset()
+    while True:
+        #action = np.argmax(q_table[state])
+        action = model.predict(state)
+        state, reward, done, info = env.step(action)
+        env.render(mode="human")
+        time.sleep(1)
+        if done:
+            print("the new")
+            obs = env.reset()
+
+        #for i in pygame.event.get():
+        #    if i.type == pygame.constants.QUIT:
+        #        env.close()
+        #        sys.exit()
 
 
-    # Hyperparameters
+
+
+
+
+
+# Hyperparameters
     # alpha = 0.1
     # gamma = 0.6
     # epsilon = 0.1
@@ -46,24 +81,3 @@ if __name__ == '__main__':
     #         q_table[state, action] = new_value
 
     #         state = next_state
-
-    print("start learning")
-    model = q_learning.SimpleQLearningModel(env=env)
-    model.learn(total_timesteps=20000, log_step=1000)
-
-    # play
-    print("the new")
-    state = env.reset()
-    while True:
-        for i in pygame.event.get():
-            if i.type == pygame.constants.QUIT:
-                env.close()
-                sys.exit()
-        #action = np.argmax(q_table[state])
-        action = model.predict(state)
-        state, reward, done, info = env.step(action)
-        env.render()
-        time.sleep(1)
-        if done:
-            print("the new")
-            obs = env.reset()
