@@ -1,12 +1,11 @@
-import numpy as np
-import gym
-import random
 import time
 import sys
-import q_learning
-import climber_model
-import climber_env
+
+import gym
 import pygame
+
+import climber_env
+import q_learning
 import routes
 
 
@@ -14,10 +13,10 @@ import routes
 if __name__ == '__main__':
 
     #env = gym.make("Taxi-v3")
-    enx = gym.envs.toy_text.TaxiEnv()
+    #env = gym.envs.toy_text.TaxiEnv()
     #route = routes.generate_random_route(250, 500, 30)
     route = routes.generate_simple_route(250, 500, step=70)
-    #env = climber_env.ClimberEnv(route=route, climb_direction="bt")
+    env = climber_env.ClimberEnv(route=route, climb_direction="bt")
 
     env.reset()
     env.render(mode="human")
@@ -41,10 +40,10 @@ if __name__ == '__main__':
             print("the new")
             obs = env.reset()
 
-        #for i in pygame.event.get():
-        #    if i.type == pygame.constants.QUIT:
-        #        env.close()
-        #        sys.exit()
+        for i in pygame.event.get():
+            if i.type == pygame.constants.QUIT:
+                env.close()
+                sys.exit()
 
 
 

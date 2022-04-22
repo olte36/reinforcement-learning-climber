@@ -1,5 +1,6 @@
-import numpy as np
 import random
+
+import numpy as np
 
 
 class SimpleQLearningAgent:
@@ -9,6 +10,7 @@ class SimpleQLearningAgent:
         self._alpha = alpha
         self._gamma = gamma
         self._epsilon = epsilon
+        self._q_table = None
 
 
     def learn(self, total_timesteps, log_step=None):

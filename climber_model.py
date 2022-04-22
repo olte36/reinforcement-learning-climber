@@ -1,7 +1,3 @@
-import enum
-from math import sqrt
-import pygame
-import sys
 from scipy.optimize import minimize
 from scipy.optimize import NonlinearConstraint
 import numpy as np
@@ -17,7 +13,6 @@ RIGHT_HAND_LEFT_LEG = 5
 
 
 class Climber:
-    
     _head_pos = None
 
     _left_hand_pos = None

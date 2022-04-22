@@ -180,7 +180,7 @@ class Button:
 
     @surface.setter
     def surface(self, value):
-        self._surface = value 
+        self._surface = value
         self.render()
 
     @text_color.setter
@@ -196,5 +196,3 @@ class Button:
     @on_click.setter
     def on_click(self, value):
         self._on_click = value
-
-    

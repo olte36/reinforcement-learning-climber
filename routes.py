@@ -1,4 +1,5 @@
 import random
+
 import numpy as np
 
 
@@ -26,6 +27,4 @@ def generate_simple_route(width, heigth, step=50):
             route.append((x, y))
             if x > width:
                 break
-            
-    #return np.array(route, dtype=[("x", "i8"), ("y", "i8")])
     return np.array(route)

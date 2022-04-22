@@ -1,13 +1,15 @@
-import gym
-import climber_model
-import routes
-import pygame
-import pygame_render
-import numpy as np
-import utils
 import time
 import random
 from dataclasses import dataclass
+
+import gym
+import numpy as np
+import pygame
+
+import climber_model
+import pygame_render
+import utils
+
 
 CLIMB_DIRECTION_RANDOM = ["random", "r"]
 CLIMB_DIRECTION_FROM_BOTTOM_TO_TOP = ["from_bottom_to_top", "bt"]
@@ -33,6 +35,8 @@ class ClimberEnv(gym.Env):
         print("Observation space is initialized in " + str(time.perf_counter() - start) + " sec")
         print("Observation space size: " + str(self.observation_space.n))
 
+        self._start_state = None
+        self._finish_hole = None
         self._random_direction = climb_direction in CLIMB_DIRECTION_RANDOM
         if not self._random_direction:
             self._init_start_and_finish(climb_direction)
