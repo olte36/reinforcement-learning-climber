@@ -19,7 +19,7 @@ if __name__ == '__main__':
     env = climber_env.ClimberEnv(route=route, climb_direction="bt")
 
     env.reset()
-    env.render(mode="human")
+    env.render()
     #time.sleep(20)
     #sys.exit()
 
