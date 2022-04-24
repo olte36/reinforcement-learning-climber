@@ -14,8 +14,8 @@ if __name__ == '__main__':
 
     #env = gym.make("Taxi-v3")
     #env = gym.envs.toy_text.TaxiEnv()
-    #route = routes.generate_random_route(250, 500, 30)
-    route = routes.generate_simple_route(250, 500, step=70)
+    route = routes.generate_random_route(250, 500, 50)
+    #route = routes.generate_simple_route(250, 500, step=70)
     env = climber_env.ClimberEnv(route=route, climb_direction="bt")
 
     env.reset()
@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     print("start learning")
     model = q_learning.SimpleQLearningAgent(env=env)
-    model.learn(total_timesteps=10000, log_step=1000)
+    model.learn(total_timesteps=20000, log_step=1000)
 
     # play
     print("the new")

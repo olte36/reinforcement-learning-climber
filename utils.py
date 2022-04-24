@@ -104,6 +104,8 @@ def sequence_without_repetition_4(seq: np.ndarray) -> np.ndarray:
 
 
 if __name__ == '__main__':
+    print((np.array([4, 4]) + np.array([6, 6]) + np.array([5, 5])) / 3)
+    sys.exit()
     #points = routes.generate_random_route(700, 700, 100)
     points = routes.generate_simple_route(250, 500, step=70)
     # points = np.array([

@@ -39,12 +39,14 @@ class ClimberEnv(gym.Env):
 
         self._start_state = None
         self._finish_hole = None
+        self._route_dist = None
         self._random_direction = climb_direction in CLIMB_DIRECTION_RANDOM
         if not self._random_direction:
             self._start_state, self._finish_hole = ClimberEnv._init_start_and_finish(self._states, self._route, climb_direction)
+            self._route_dist = self._dist_to_finish()
 
         self._eposodes_count = 0
-        self._eposodes_max = 50
+        self._eposodes_max = 100
         self._render_surface = None
 
 
@@ -56,7 +58,7 @@ class ClimberEnv(gym.Env):
         decoded_action = self._actions[action]
         if decoded_action == CHANGE_SUPPORT_ACTION:
             self._climber.change_support()
-            return (self._get_state_ind(), -1, False, "")
+            return (self._get_state_ind(), 1, False, "")
 
         if self._climber.is_transition_possible(limb=decoded_action.limb, point=decoded_action.hole):
             self._climber.do_transition(limb=decoded_action.limb, point=decoded_action.hole)
@@ -67,8 +69,7 @@ class ClimberEnv(gym.Env):
             if done:
                 reward = 200
             else:
-                reward = -1
-                #reward = 500 - min(np.linalg.norm(self._finish_hole - self._climber.right_hand_pos), np.linalg.norm(self._finish_hole - self._climber.left_hand_pos))
+                reward = self._route_dist - self._dist_to_finish()
 
             return (self._get_state_ind(), reward, done, "")
 
@@ -115,7 +116,7 @@ class ClimberEnv(gym.Env):
         states = {}
         max_distance = climber.hands_len + climber.torso_len + climber.legs_len
         max_distance += max_distance // 2
-        quads = utils.quad_points_dist_set(route, max_distance)
+        quads = utils.quad_points_dist_set2(route, max_distance, axis=1)
         counter = 0
         for quad in quads:
             limb_options = utils.sequence_without_repetition_4(quad.points)
@@ -181,6 +182,11 @@ class ClimberEnv(gym.Env):
             right_leg=self._climber.right_leg_pos,
             support=self._climber.support
         )]
+    
+
+    def _dist_to_finish(self):
+        avg_pos = (self._climber.left_hand_pos + self._climber.right_hand_pos + self._climber.left_leg_pos + self._climber.right_leg_pos) / 4
+        return np.linalg.norm(self._finish_hole - avg_pos)
 
 
 

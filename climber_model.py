@@ -13,32 +13,27 @@ RIGHT_HAND_LEFT_LEG = 5
 
 
 class Climber:
-    _head_pos = None
-
-    _left_hand_pos = None
-    _left_elbow_pos = None
-
-    _right_hand_pos = None
-    _right_elbow_pos = None
-
-    _shoulders_pos = None
-    _pelvis_pos = None
-
-    _left_leg_pos = None
-    _left_knee_pos = None
-
-    _right_leg_pos = None
-    _right_knee_pos = None
-
-    _support = None
-    _hands_len = None
-    _torso_len = None
-    _legs_len = None
-    _neck_len = None
-    _neck_torso_ratio = None
-
-
+   
     def __init__(self, hands_len = 60, torso_len = 50, legs_len = 70, neck_len = 20):
+        dim = 2
+        self._head_pos = np.zeros(dim)
+
+        self._left_hand_pos = np.zeros(dim)
+        self._left_elbow_pos = np.zeros(dim)
+
+        self._right_hand_pos = np.zeros(dim)
+        self._right_elbow_pos = np.zeros(dim)
+
+        self._shoulders_pos = np.zeros(dim)
+        self._pelvis_pos = np.zeros(dim)
+
+        self._left_leg_pos = np.zeros(dim)
+        self._left_knee_pos = np.zeros(dim)
+
+        self._right_leg_pos = np.zeros(dim)
+        self._right_knee_pos = np.zeros(dim)
+
+        self._support = LEFT_HAND_RIGH_LEG
         self._hands_len = hands_len
         self._torso_len = torso_len
         self._legs_len = legs_len
@@ -46,7 +41,7 @@ class Climber:
         self._neck_torso_ratio = - (self._torso_len + self._neck_len) / self._neck_len
 
 
-    def can_start(self, left_hand: np.ndarray, right_hand: np.ndarray, left_leg: np.ndarray, right_leg: np.ndarray):
+    def can_start(self, left_hand: np.ndarray, right_hand: np.ndarray, left_leg: np.ndarray, right_leg: np.ndarray) -> bool:
         return self._is_position_possible(left_hand=left_hand, right_hand=right_hand, left_leg=left_leg, right_leg=right_leg)
 
 
@@ -56,10 +51,9 @@ class Climber:
         self._left_leg_pos = left_leg
         self._right_leg_pos = right_leg
         self._support = support
-        #self._adjust_body()
 
 
-    def is_transition_possible(self, limb: int, point: np.ndarray):
+    def is_transition_possible(self, limb: int, point: np.ndarray) -> bool:
         if limb == LEFT_HAND:
             # TODO: реализовать отрыв неопорной правой ноги от зацепки
             return self._support != LEFT_HAND_RIGH_LEG \
@@ -107,17 +101,12 @@ class Climber:
         else:
             raise Exception("Ivalid limb " + limb)
 
-        #self._adjust_body()
 
-
-    def change_support(self):
+    def change_support(self) -> int:
         if self._support == LEFT_HAND_RIGH_LEG:
             self._support = RIGHT_HAND_LEFT_LEG
-
         else:
             self._support = LEFT_HAND_RIGH_LEG
-
-        #self._adjust_body()
         return self._support
 
 
@@ -209,7 +198,7 @@ class Climber:
         # print("Правая нога: " + str(np.linalg.norm(self._right_leg_pos - self._pelvis_pos)))
 
 
-    def _is_position_possible(self, left_hand: np.ndarray, right_hand: np.ndarray, left_leg: np.ndarray, right_leg: np.ndarray):
+    def _is_position_possible(self, left_hand: np.ndarray, right_hand: np.ndarray, left_leg: np.ndarray, right_leg: np.ndarray) -> bool:
         return not np.array_equal(left_hand, right_hand) \
             and not np.array_equal(left_leg, right_leg) \
             and min(left_hand[1], right_hand[1]) > max(left_leg[1], right_leg[1]) \
@@ -220,63 +209,63 @@ class Climber:
             and np.linalg.norm(left_hand - left_leg) <= self._legs_len + self._torso_len + self._hands_len \
             and np.linalg.norm(right_hand - right_leg) <= self._legs_len + self._torso_len + self._hands_len
 
+
     @property
-    def head_pos(self):
+    def head_pos(self) -> np.ndarray:
         return self._head_pos
 
     @property
-    def left_hand_pos(self):
+    def left_hand_pos(self) -> np.ndarray:
         return self._left_hand_pos
 
     @property    
-    def left_elbow_pos(self):   
+    def left_elbow_pos(self) -> np.ndarray:   
         return self._left_elbow_pos
 
     @property
-    def right_hand_pos(self):
+    def right_hand_pos(self) -> np.ndarray:
         return self._right_hand_pos
 
     @property
-    def right_elbow_pos(self):
+    def right_elbow_pos(self) -> np.ndarray:
         return self._right_elbow_pos
 
     @property
-    def shoulders_pos(self):
+    def shoulders_pos(self) -> np.ndarray:
         return self._shoulders_pos
 
     @property
-    def pelvis_pos(self):    
+    def pelvis_pos(self) -> np.ndarray:    
         return self._pelvis_pos
 
     @property
-    def left_leg_pos(self):
+    def left_leg_pos(self) -> np.ndarray:
         return self._left_leg_pos
     
     @property
-    def left_knee_pos(self):
+    def left_knee_pos(self) -> np.ndarray:
         return self._left_knee_pos
 
     @property
-    def right_leg_pos(self):
+    def right_leg_pos(self) -> np.ndarray:
         return self._right_leg_pos
 
     @property
-    def right_knee_pos(self):
+    def right_knee_pos(self) -> np.ndarray:
         return self._right_knee_pos
 
     @property
-    def support(self):
+    def support(self) -> int:
         return self._support
     
     @property
-    def hands_len(self):
+    def hands_len(self) -> int:
         return self._hands_len
 
     @property
-    def torso_len(self):
+    def torso_len(self) -> int:
         return self._torso_len
 
     @property
-    def legs_len(self):
+    def legs_len(self) -> int:
         return self._legs_len
-
