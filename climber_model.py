@@ -78,7 +78,7 @@ class Climber:
                 and not np.array_equal(point, self._right_leg_pos) \
                 and self._is_position_possible(left_hand=self._left_hand_pos, right_hand=self._right_hand_pos, left_leg=self._left_leg_pos, right_leg=point)
 
-        raise Exception("Ivalid limb " + limb)
+        raise Exception("Ivalid limb " + str(limb))
 
 
     def do_transition(self, limb: int, point: np.ndarray):

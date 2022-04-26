@@ -7,9 +7,14 @@ name = "pypi"
 gym = "*"
 pygame = "*"
 scipy = "*"
+numpy = "*"
 
 [dev-packages]
 pylint = "*"
+stable-baselines3 = "*"
+torch = "*"
+torchvision = "*"
+pandas = "*"
 
 [requires]
 python_version = "3.8"
