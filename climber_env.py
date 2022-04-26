@@ -26,13 +26,13 @@ class ClimberEnv(gym.Env):
         self._route = self._route[self._route[:, 1].argsort()]
         
         start = time.perf_counter()
-        self._actions = ClimberEnv._generate_climber_actions(self._route)
+        actions = ClimberEnv._generate_climber_actions(self._route)
         print("Climber actions has been initialized in " + str(time.perf_counter() - start) + " sec")
-        self.action_space = gym.spaces.Discrete(len(self._actions))
-        print("Action space size: " + str(self.action_space.n))
+        #self.action_space = gym.spaces.Discrete(len(self._actions))
+        #print("Action space size: " + str(self.action_space.n))
 
         start = time.perf_counter()
-        self._states = ClimberEnv._generate_climber_states(self._route, self._climber)
+        self._states = ClimberEnv._generate_climber_states(self._route, self._climber, actions)
         print("Climber states has been initialized in " + str(time.perf_counter() - start) + " sec")
         self.observation_space = gym.spaces.Discrete(len(self._states))
         print("Observation space size: " + str(self.observation_space.n))
@@ -43,37 +43,38 @@ class ClimberEnv(gym.Env):
         self._random_direction = climb_direction in CLIMB_DIRECTION_RANDOM
         if not self._random_direction:
             self._start_state, self._finish_hole = ClimberEnv._init_start_and_finish(self._states, self._route, climb_direction)
-            self._route_dist = self._dist_to_finish()
 
         self._eposodes_count = 0
-        self._eposodes_max = 100
+        self._eposodes_max = 50
         self._render_surface = None
 
 
     def step(self, action):
-        self._eposodes_count += 1
-        if (self._eposodes_count == self._eposodes_max - 1):
-            return (self._get_state_ind(), -120, True, "")
+        #self._eposodes_count += 1
+        #if (self._eposodes_count == self._eposodes_max - 1):
+        #    return (self._get_state_ind()["index"], -120, True, "")
 
-        decoded_action = self._actions[action]
+        decoded_action = self._get_state_ind()["actions"][action]
         if decoded_action == CHANGE_SUPPORT_ACTION:
             self._climber.change_support()
-            return (self._get_state_ind(), 1, False, "")
+            self.action_space = gym.spaces.Discrete(len(self._get_state_ind()["actions"]))
+            return (self._get_state_ind()["index"], 0, False, "")
 
-        if self._climber.is_transition_possible(limb=decoded_action.limb, point=decoded_action.hole):
-            self._climber.do_transition(limb=decoded_action.limb, point=decoded_action.hole)
-            done = np.array_equal(self._climber.left_hand_pos, self._finish_hole) \
-                or np.array_equal(self._climber.right_hand_pos, self._finish_hole) \
-                or np.array_equal(self._climber.left_leg_pos, self._finish_hole) \
-                or np.array_equal(self._climber.right_leg_pos, self._finish_hole)
-            if done:
-                reward = 200
-            else:
-                reward = self._route_dist - self._dist_to_finish()
+        #if self._climber.is_transition_possible(limb=decoded_action.limb, point=decoded_action.hole):
+        self._climber.do_transition(limb=decoded_action.limb, point=decoded_action.hole)
+        done = np.array_equal(self._climber.left_hand_pos, self._finish_hole) \
+            or np.array_equal(self._climber.right_hand_pos, self._finish_hole) \
+            or np.array_equal(self._climber.left_leg_pos, self._finish_hole) \
+            or np.array_equal(self._climber.right_leg_pos, self._finish_hole)
+        if done:
+            reward = 1500
+        else:
+            reward = 700 - self._dist_to_finish()
 
-            return (self._get_state_ind(), reward, done, "")
+        self.action_space = gym.spaces.Discrete(len(self._get_state_ind()["actions"]))
+        return (self._get_state_ind()["index"], reward, done, "")
 
-        return (self._get_state_ind(), -5, False, "")
+        #return (self._get_state_ind(), -5, False, "")
              
 
 
@@ -90,7 +91,9 @@ class ClimberEnv(gym.Env):
             right_leg=self._start_state.right_leg,
             support=self._start_state.support
         )
-        return self._get_state_ind()
+        self._route_dist = self._dist_to_finish()
+        self.action_space = gym.spaces.Discrete(len(self._get_state_ind()["actions"]))
+        return self._get_state_ind()["index"]
 
 
     def render(self, mode='human'):
@@ -112,7 +115,7 @@ class ClimberEnv(gym.Env):
         
 
     @staticmethod
-    def _generate_climber_states(route: np.ndarray, climber: climber_model.Climber) -> dict:
+    def _generate_climber_states(route: np.ndarray, climber: climber_model.Climber, possible_actions: list) -> dict:
         states = {}
         max_distance = climber.hands_len + climber.torso_len + climber.legs_len
         max_distance += max_distance // 2
@@ -122,18 +125,35 @@ class ClimberEnv(gym.Env):
             limb_options = utils.sequence_without_repetition_4(quad.points)
             for option in limb_options:
                 if climber.can_start(left_hand=option[0], right_hand=option[1], left_leg=option[2], right_leg=option[3]):
-                    state1 = ClimberState(
+                    pos1 = ClimberState(
                         left_hand=option[0],
                         right_hand=option[1],
                         left_leg=option[2],
                         right_leg=option[3],
                         support=climber_model.RIGHT_HAND_LEFT_LEG
                     )
-                    states[state1] = counter
+
+                    states[pos1] = {"index": counter, "actions": []}
                     counter += 1
-                    state2 = state1.with_support(climber_model.LEFT_HAND_RIGH_LEG)
-                    states[state2] = counter
+
+                    pos2 = pos1.with_support(climber_model.LEFT_HAND_RIGH_LEG)
+                    states[pos2] = {"index": counter, "actions": []}
                     counter += 1
+
+                    for pos in [pos1, pos2]:
+                        states[pos]["actions"].append(possible_actions[0])
+                        climber.set_start_pos(
+                            left_hand=pos.left_hand,
+                            right_hand=pos.right_hand,
+                            left_leg=pos.left_leg,
+                            right_leg=pos.right_leg,
+                            support=pos.support
+                        )
+                        for action in possible_actions[1:]:
+                            if climber.is_transition_possible(action.limb, action.hole):
+                                states[pos]["actions"].append(action)
+
+
         return states
 
 
