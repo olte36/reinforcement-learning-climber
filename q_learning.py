@@ -23,8 +23,10 @@ class SimpleQLearningAgent:
             state = self._env.reset()
             reward = 0
             done = False
-            
+            counter = 0
+
             while not done:
+                counter += 1
                 if random.uniform(0, 1) < self._epsilon:
                     action = self._env.action_space.sample() # Explore action space
                 else:
