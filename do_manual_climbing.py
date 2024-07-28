@@ -37,12 +37,7 @@ if __name__ == '__main__':
 
     main_surface = pygame.display.set_mode((WIDTH, HEIGHT))
 
-    controls_surface = pygame.Surface((150, HEIGHT))
-    controls_surface.fill(pygame_render.GRAY)
-
-    climbing_surface = pygame.Surface((350, HEIGHT))
-
-    create_route_button = pygame_render.Button(pos=(25, 25), width=100, height=40, text="Create route", color=pygame_render.GREEN, surface=controls_surface, font=pygame.font.SysFont('arial', 24))
+    create_route_button = pygame_render.Button(pos=(25, 25), width=100, height=40, text="Create route", color=pygame_render.GREEN, surface=main_surface, font=pygame.font.SysFont('arial', 24))
     create_route_button.on_click = create_route_button_on_click
 
     climber = climber_model.Climber()
@@ -50,7 +45,7 @@ if __name__ == '__main__':
         ROUTE[4], #left hand
         ROUTE[3], #right hand
         ROUTE[0], #left leg
-        ROUTE[1], #right leg
+        None, #right leg
         climber_model.RIGHT_HAND_LEFT_LEG)
     climber.adjust_body()
     
@@ -68,11 +63,11 @@ if __name__ == '__main__':
                     if np.linalg.norm(np.array(pos) - np.array(h)) <= 3:
                         hole = np.array(h)
                         break
-                if hole is not None and curr_limb is not None:
+                if curr_limb is not None:
                     is_posible = climber.is_transition_possible(curr_limb, hole)
                     if is_posible:
                         climber.do_transition(curr_limb, hole)
-                        #climber.adjust_body()
+                        climber.adjust_body()
             if i.type == pygame.constants.KEYDOWN:
                 # 1 (49)- правая рука
                 # 2 (50)- левая рука
@@ -89,14 +84,12 @@ if __name__ == '__main__':
                     curr_limb = climber_model.LEFT_LEG
                 elif i.key == 53:
                     climber.change_support()
-                    #climber.adjust_body()
+                    climber.adjust_body()
 
         climbing_surface.fill(pygame_render.BLACK)
-        pygame_render.render_route(ROUTE, climbing_surface)
-        pygame_render.render_climber(climber, climbing_surface)
+        pygame_render.render_route(ROUTE, main_surface)
+        pygame_render.render_climber(climber, main_surface)
         create_route_button.render()
-
-        main_surface.blit(climbing_surface, (0, 0))
-        main_surface.blit(controls_surface, (350, 0))
+        
         pygame.display.update()
         clock.tick(FPS)

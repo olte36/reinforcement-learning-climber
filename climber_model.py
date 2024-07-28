@@ -41,8 +41,8 @@ class Climber:
         self._neck_torso_ratio = - (self._torso_len + self._neck_len) / self._neck_len
 
 
-    def can_start(self, left_hand: np.ndarray, right_hand: np.ndarray, left_leg: np.ndarray, right_leg: np.ndarray) -> bool:
-        return self._is_position_possible(left_hand=left_hand, right_hand=right_hand, left_leg=left_leg, right_leg=right_leg)
+    def can_start(self, left_hand: np.ndarray, right_hand: np.ndarray, left_leg: np.ndarray, right_leg: np.ndarray, support) -> bool:
+        return self._is_position_possible(left_hand=left_hand, right_hand=right_hand, left_leg=left_leg, right_leg=right_leg, support=support)
 
 
     def set_start_pos(self, left_hand: np.ndarray, right_hand: np.ndarray, left_leg: np.ndarray, right_leg: np.ndarray, support: int):
@@ -58,25 +58,25 @@ class Climber:
             # TODO: реализовать отрыв неопорной правой ноги от зацепки
             return self._support != LEFT_HAND_RIGH_LEG \
                 and not np.array_equal(point, self._left_hand_pos) \
-                and self._is_position_possible(left_hand=point, right_hand=self._right_hand_pos, left_leg=self._left_leg_pos, right_leg=self._right_leg_pos)
+                and self._is_position_possible(left_hand=point, right_hand=self._right_hand_pos, left_leg=self._left_leg_pos, right_leg=self._right_leg_pos, support=self._support)
         
         if limb == RIGHT_HAND:
             # TODO: реализовать отрыв неопорной левой ноги от зацепки
             return self._support != RIGHT_HAND_LEFT_LEG \
                 and not np.array_equal(point, self._right_hand_pos) \
-                and self._is_position_possible(left_hand=self._left_hand_pos, right_hand=point, left_leg=self._left_leg_pos, right_leg=self._right_leg_pos)
+                and self._is_position_possible(left_hand=self._left_hand_pos, right_hand=point, left_leg=self._left_leg_pos, right_leg=self._right_leg_pos, support=self._support)
 
         if limb == LEFT_LEG:
             # TODO: реализовать отрыв неопорной правой руки от зацепки
             return self._support != RIGHT_HAND_LEFT_LEG \
                 and not np.array_equal(point, self._left_leg_pos) \
-                and self._is_position_possible(left_hand=self._left_hand_pos, right_hand=self._right_hand_pos, left_leg=point, right_leg=self._right_leg_pos)
+                and self._is_position_possible(left_hand=self._left_hand_pos, right_hand=self._right_hand_pos, left_leg=point, right_leg=self._right_leg_pos, support=self._support)
 
         if limb == RIGHT_LEG:
             # TODO: реализовать отрыв неопорной левой руки от зацепки
             return self._support != LEFT_HAND_RIGH_LEG \
                 and not np.array_equal(point, self._right_leg_pos) \
-                and self._is_position_possible(left_hand=self._left_hand_pos, right_hand=self._right_hand_pos, left_leg=self._left_leg_pos, right_leg=point)
+                and self._is_position_possible(left_hand=self._left_hand_pos, right_hand=self._right_hand_pos, left_leg=self._left_leg_pos, right_leg=point, support=self._support)
 
         raise Exception("Ivalid limb " + str(limb))
 
@@ -104,9 +104,18 @@ class Climber:
 
     def change_support(self) -> int:
         if self._support == LEFT_HAND_RIGH_LEG:
+            if self._left_leg_pos is None:
+                self._left_leg_pos = self._right_leg_pos
+                self._right_leg_pos = None
+
             self._support = RIGHT_HAND_LEFT_LEG
         else:
+            if self._right_leg_pos is None:
+                self._right_leg_pos = self._left_leg_pos
+                self._left_leg_pos = None
+
             self._support = LEFT_HAND_RIGH_LEG
+            
         return self._support
 
 
@@ -124,17 +133,21 @@ class Climber:
         # pelvis
         f = lambda x: np.linalg.norm(x - support_leg)
         x0 = support_hand
-        res = minimize(f, x0, method='trust-constr', constraints=[
+        pelivis_constraints = [
             NonlinearConstraint(lambda x: np.linalg.norm(x - support_leg), 30, self._legs_len),
-            NonlinearConstraint(lambda x: np.linalg.norm(x - minor_leg), -np.inf, self._legs_len),
             NonlinearConstraint(lambda x: np.linalg.norm(x - support_hand), -np.inf, self._hands_len + self._torso_len),
             NonlinearConstraint(lambda x: np.linalg.norm(x - minor_hand), -np.inf, self._hands_len + self._torso_len)
-        ])
+        ]
+        if minor_leg is not None:
+            pelivis_constraints.append(NonlinearConstraint(lambda x: np.linalg.norm(x - minor_leg), -np.inf, self._legs_len))
+
+        res = minimize(f, x0, method='trust-constr', constraints=pelivis_constraints)
         self._pelvis_pos = np.array(res.x)
 
         # shoulders
         f = lambda x: -x[1]
-        x0 = self._pelvis_pos + np.array((0, 100))
+        x0 = np.copy(self._pelvis_pos)
+        x0[1] += 100
         res = minimize(f, x0, method='trust-constr', constraints=[
             NonlinearConstraint(lambda x: np.linalg.norm(x - minor_hand), -np.inf, self._hands_len),
             NonlinearConstraint(lambda x: np.linalg.norm(x - support_hand), self._hands_len, self._hands_len),
@@ -146,7 +159,8 @@ class Climber:
         # left elbow
         left_hand_mid = (self._shoulders_pos + self._left_hand_pos) / 2
         f = lambda x: -np.linalg.norm(x - left_hand_mid)
-        x0 = left_hand_mid + np.array((0, -10))
+        x0 = np.copy(left_hand_mid)
+        x0[1] += -10
         res = minimize(f, x0, method='trust-constr', constraints=[
             NonlinearConstraint(lambda x: np.linalg.norm(x - self._shoulders_pos), self._hands_len // 2, self._hands_len // 2),
             NonlinearConstraint(lambda x: np.linalg.norm(x - self._left_hand_pos), self._hands_len // 2, self._hands_len // 2)
@@ -156,7 +170,8 @@ class Climber:
         # right elbow
         right_hand_mid = (self._shoulders_pos + self._right_hand_pos) / 2
         f = lambda x: -np.linalg.norm(x - right_hand_mid)
-        x0 = right_hand_mid + np.array((0, -10))
+        x0 = np.copy(right_hand_mid)
+        x0[1] += -10
         res = minimize(f, x0, method='trust-constr', constraints=[
             NonlinearConstraint(lambda x: np.linalg.norm(x - self._shoulders_pos), self._hands_len // 2, self._hands_len // 2),
             NonlinearConstraint(lambda x: np.linalg.norm(x - self._right_hand_pos), self._hands_len // 2, self._hands_len // 2)
@@ -164,24 +179,32 @@ class Climber:
         self._right_elbow_pos = np.array(res.x)
 
         #left knee
-        left_leg_mid = (self._pelvis_pos + self._left_leg_pos) / 2
-        f = lambda x: -np.linalg.norm(x - left_leg_mid)
-        x0 = left_leg_mid + np.array((0, 10))
-        res = minimize(f, x0, method='trust-constr', constraints=[
-            NonlinearConstraint(lambda x: np.linalg.norm(x - self._pelvis_pos), self._legs_len // 2, self._legs_len // 2),
-            NonlinearConstraint(lambda x: np.linalg.norm(x - self._left_leg_pos), self._legs_len // 2, self._legs_len // 2)
-        ])
-        self._left_knee_pos = np.array(res.x)
+        if self._left_leg_pos is None:
+            self._left_knee_pos = None
+        else:
+            left_leg_mid = (self._pelvis_pos + self._left_leg_pos) / 2
+            f = lambda x: -np.linalg.norm(x - left_leg_mid)
+            x0 = np.copy(left_leg_mid)
+            x0[1] += 10
+            res = minimize(f, x0, method='trust-constr', constraints=[
+                NonlinearConstraint(lambda x: np.linalg.norm(x - self._pelvis_pos), self._legs_len // 2, self._legs_len // 2),
+                NonlinearConstraint(lambda x: np.linalg.norm(x - self._left_leg_pos), self._legs_len // 2, self._legs_len // 2)
+            ])
+            self._left_knee_pos = np.array(res.x)
 
         #right knee
-        right_leg_mid = (self._pelvis_pos + self._right_leg_pos) / 2
-        f = lambda x: -np.linalg.norm(x - right_leg_mid)
-        x0 = right_leg_mid + np.array((0, 10))
-        res = minimize(f, x0, method='trust-constr', constraints=[
-            NonlinearConstraint(lambda x: np.linalg.norm(x - self._pelvis_pos), self._legs_len // 2, self._legs_len // 2),
-            NonlinearConstraint(lambda x: np.linalg.norm(x - self._right_leg_pos), self._legs_len // 2, self._legs_len // 2)
-        ])
-        self._right_knee_pos = np.array(res.x)
+        if self._right_leg_pos is None:
+            self._right_knee_pos = None
+        else:
+            right_leg_mid = (self._pelvis_pos + self._right_leg_pos) / 2
+            f = lambda x: -np.linalg.norm(x - right_leg_mid)
+            x0 = np.copy(right_leg_mid)
+            x0[1] += 10
+            res = minimize(f, x0, method='trust-constr', constraints=[
+                NonlinearConstraint(lambda x: np.linalg.norm(x - self._pelvis_pos), self._legs_len // 2, self._legs_len // 2),
+                NonlinearConstraint(lambda x: np.linalg.norm(x - self._right_leg_pos), self._legs_len // 2, self._legs_len // 2)
+            ])
+            self._right_knee_pos = np.array(res.x)
 
         # head
         head_pos = []
@@ -198,16 +221,38 @@ class Climber:
         # print("Правая нога: " + str(np.linalg.norm(self._right_leg_pos - self._pelvis_pos)))
 
 
-    def _is_position_possible(self, left_hand: np.ndarray, right_hand: np.ndarray, left_leg: np.ndarray, right_leg: np.ndarray) -> bool:
+    def _is_position_possible(
+        self,
+        left_hand: np.ndarray,
+        right_hand: np.ndarray,
+        left_leg: np.ndarray,
+        right_leg: np.ndarray,
+        support
+    ) -> bool:
+        hands_are_ok = left_hand is not None and right_hand is not None
+        if not hands_are_ok:
+            return False
+
+        left_leg_is_ok = (left_leg is None \
+            and support == LEFT_HAND_RIGH_LEG) \
+            or (left_leg is not None \
+            and min(left_hand[1], right_hand[1]) > left_leg[1]
+            and np.linalg.norm(right_hand - left_leg) <= self._legs_len + self._torso_len + self._hands_len \
+            and np.linalg.norm(left_hand - left_leg) <= self._legs_len + self._torso_len + self._hands_len)
+
+        right_leg_is_ok = (right_leg is None \
+            and support == RIGHT_HAND_LEFT_LEG) \
+            or (right_leg is not None \
+            and min(left_hand[1], right_hand[1]) > right_leg[1]
+            and np.linalg.norm(left_hand - right_leg) <= self._legs_len + self._torso_len + self._hands_len \
+            and np.linalg.norm(right_hand - right_leg) <= self._legs_len + self._torso_len + self._hands_len)
+
         return not np.array_equal(left_hand, right_hand) \
             and not np.array_equal(left_leg, right_leg) \
-            and min(left_hand[1], right_hand[1]) > max(left_leg[1], right_leg[1]) \
             and np.linalg.norm(left_hand - right_hand) <= self._hands_len * 2 \
-            and np.linalg.norm(left_leg - right_leg) <= self._legs_len * 2 \
-            and np.linalg.norm(left_hand - right_leg) <= self._legs_len + self._torso_len + self._hands_len \
-            and np.linalg.norm(right_hand - left_leg) <= self._legs_len + self._torso_len + self._hands_len \
-            and np.linalg.norm(left_hand - left_leg) <= self._legs_len + self._torso_len + self._hands_len \
-            and np.linalg.norm(right_hand - right_leg) <= self._legs_len + self._torso_len + self._hands_len
+            and (left_leg is None or right_leg is None or np.linalg.norm(left_leg - right_leg) <= self._legs_len * 2) \
+            and left_leg_is_ok \
+            and right_leg_is_ok
 
 
     @property

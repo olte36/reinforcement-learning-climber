@@ -1,4 +1,7 @@
+import itertools
 import time
+import math
+import matplotlib.pyplot as plt
 from typing import Union
 from collections import Counter
 
@@ -36,7 +39,21 @@ class PointsSet:
         return self._points
 
 
-def quad_points_dist_set(points: np.ndarray, dist: int):
+def triple_points_dist_brute_force(points: np.ndarray, dist: int) -> set:
+    quad_set = set()
+    rows = points.shape[0]
+    for i in range(rows):
+        for j in range(i + 1, rows):
+            if np.linalg.norm(points[i] - points[j]) <= dist:
+                for k in range(j + 1, rows):
+                    if np.linalg.norm(points[i] - points[k]) <= dist \
+                        and np.linalg.norm(points[j] - points[k]) <= dist:
+                        quad_set.add(PointsSet(points[i], points[j], points[k]))
+
+    return quad_set
+
+
+def tetrad_points_dist_brute_force(points: np.ndarray, dist: int) -> set:
     quad_set = set()
     rows = points.shape[0]
     for i in range(rows):
@@ -54,16 +71,16 @@ def quad_points_dist_set(points: np.ndarray, dist: int):
     return quad_set
 
 
-def quad_points_dist_set2(points: np.ndarray, dist: int, axis: int):
+def points_dist_divide_and_conquer(points: np.ndarray, dist: int, axis: int, brute_force_func) -> set:
     points_count = points.shape[0]
-    if (points_count <= 8):
-        return quad_points_dist_set(points, dist)
+    if (points_count <= 8 or points[-1][axis] - points[0][axis] <= dist):
+        return brute_force_func(points, dist)
 
     left_part = points[0 : points_count // 2]
     right_part = points[points_count // 2 : points_count]
     
-    left_res = quad_points_dist_set2(left_part, dist, axis)
-    right_res = quad_points_dist_set2(right_part, dist, axis)
+    left_res = points_dist_divide_and_conquer(left_part, dist, axis, brute_force_func)
+    right_res = points_dist_divide_and_conquer(right_part, dist, axis, brute_force_func)
     
     middle_point = points[points_count // 2]
     middle_points = []
@@ -81,9 +98,17 @@ def quad_points_dist_set2(points: np.ndarray, dist: int, axis: int):
     
     middle_points = np.array(middle_points)
 
-    middle_res = quad_points_dist_set(middle_points, dist)
+    middle_res = brute_force_func(middle_points, dist)
 
     return left_res.union(middle_res, right_res)
+
+
+def tetrad_points_dist_divide_and_conquer(points: np.ndarray, dist: int, axis: int) -> set:
+    return points_dist_divide_and_conquer(points, dist, axis, tetrad_points_dist_brute_force)
+
+
+def triple_points_dist_divide_and_conquer(points: np.ndarray, dist: int, axis: int) -> set:
+    return points_dist_divide_and_conquer(points, dist, axis, triple_points_dist_brute_force)
 
 
 def sequence_without_repetition_4(seq: np.ndarray) -> np.ndarray:
@@ -104,52 +129,87 @@ def sequence_without_repetition_4(seq: np.ndarray) -> np.ndarray:
 
 
 if __name__ == '__main__':
-    print((np.array([4, 4]) + np.array([6, 6]) + np.array([5, 5])) / 3)
-    sys.exit()
-    #points = routes.generate_random_route(700, 700, 100)
-    points = routes.generate_simple_route(250, 500, step=70)
-    # points = np.array([
-    #     [1, 1], [3, 1], [3, 3], [1, 3], 
-    #     [100, 100], [103, 100], [103, 103], [100, 103],
-    #     [200, 200], [203, 200], [203, 203], [200, 203],
-    #     [300, 300], [303, 300], [303, 303], [300, 303],
-    #     [400, 400], [403, 400], [403, 403], [400, 403],
-    #     [500, 500], [503, 500], [503, 503], [500, 503]
-    # ])
+    # months = [
+    #     "06.20",
+    #     "07.20",
+    #     "08.20",
+    #     "09.20",
+    #     "10.20",
+    #     "11.20",
+    #     "12.20",
+    #     "01.21",
+    #     "02.21",
+    #     "03.21",
+    #     "04.21",
+    #     "05.21",
+    #     "06.21",
+    #     "07.21",
+    #     "08.21",
+    #     "09.21",
+    #     "10.21",
+    #     "11.21",
+    #     "12.21",
+    #     "01.22",
+    #     "02.22",
+    #     "03.22",
+    #     "04.22"
+    # ]
+    # requests = [
+    #     24382,
+    #     27322,
+    #     32262,
+    #     45936,
+    #     46695,
+    #     54782,
+    #     41720,
+    #     47769,
+    #     43736,
+    #     52938,
+    #     51527,
+    #     49653,
+    #     43178,
+    #     56898,
+    #     199391,
+    #     73677,
+    #     61111,
+    #     55852,
+    #     61359,
+    #     63845,
+    #     57952,
+    #     61163,
+    #     66482
+    # ]
+    years = [
+        "2011",
+        "2012",
+        "2013",
+        "2014",
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021"
+    ]
+    papers = [
+        743,
+        689,
+        740,
+        692,
+        731,
+        852,
+        1550,
+        2820,
+        4380,
+        6760,
+        9320
+    ]
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=18)
+    plt.xlabel('Год', fontsize=24)
+    plt.ylabel('Количество статей', fontsize=24)
+    plt.plot(years, papers, c="#000000", linewidth=3)
+    plt.show()
+
     
-    np.random.shuffle(points)
-    points = points[points[:, 1].argsort()]
-
-    dist = 100
-
-    start = time.perf_counter()
-    res1 = quad_points_dist_set(points, dist)
-    print("Calculated res1 in  " + str(time.perf_counter() - start) + " sec")
-    
-    start = time.perf_counter()
-    res2 = quad_points_dist_set2(points, dist, axis=1)
-    print("Calculated res2 in  " + str(time.perf_counter() - start) + " sec")
-    #sys.exit()
-
-    #for i in range(res1.shape[2]):
-    #    res1 = res1[res1[:, i].argsort()]
-
-    #for i in range(res2.shape[2]):
-    #    res2 = res2[res2[:, i].argsort()]
-
-    print(len(res1))
-    print(len(res2))
-
-    #seq = sequence_without_repetition_4(res1.pop().points)
-    #print(seq.shape)
-    #print(res1)
-    #print(res2)
-
-
-    # for quad in res:
-    #     for left_hand in quad:
-    #         for right_hand in quad:
-    #             for left_leg in quad:
-    #                 for right_leg in quad:
-    #                     if climer.can_start(left_hand=left_hand, right_hand=right_hand, left_leg=left_leg, right_leg=right_leg):
-    #                         print("lh: " + str(left_hand) + " rh: " + str(right_hand) + " ll: " + str(left_leg) + " rl: "+ str(right_leg))

@@ -8,6 +8,7 @@ gym = "*"
 pygame = "*"
 scipy = "*"
 numpy = "*"
+matplotlib = "*"
 
 [dev-packages]
 pylint = "*"
